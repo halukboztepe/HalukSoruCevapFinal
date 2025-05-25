@@ -1,0 +1,90 @@
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="auth-container">
+    <div class="col-md-6">
+        <div class="auth-card">
+            <div class="card-body">
+                <h2 class="auth-title text-center">Register</h2>
+                <div id="registerError" class="auth-error d-none"></div>
+                <form id="registerForm" class="auth-form">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="firstName" class="form-label">Adýnýz</label>
+                        <input type="text" class="form-control" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="lastName" class="form-label">Soyadýnýz </label>
+                        <input type="text" class="form-control" id="lastName" name="lastName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Þifreniz</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Þifrenizi Tekrar Giriniz </label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Kayýt Ol</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Hesabýn Var mý ?  <a href="@Url.Action("Login", "Home")" class="auth-link">Giriþ Yap </a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#registerForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                if ($('#password').val() !== $('#confirmPassword').val()) {
+                    $('#registerError').removeClass('d-none').text('Passwords do not match');
+                    return;
+                }
+
+                const registerData = {
+                    username: $('#username').val(),
+                    email: $('#email').val(),
+                    firstName: $('#firstName').val(),
+                    lastName: $('#lastName').val(),
+                    password: $('#password').val()
+                };
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/auth/register`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(registerData),
+                    success: function(response) {
+                        if (response.isSuccess) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            $('#registerError').removeClass('d-none').text(response.message || 'Registration failed');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'An error occurred during registration';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        $('#registerError').removeClass('d-none').text(errorMessage);
+                    }
+                });
+            });
+        });
+    </script>
+} 

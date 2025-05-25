@@ -1,0 +1,163 @@
+@{
+    ViewData["Title"] = "Soru Detayı";
+    Layout = "~/Views/Shared/_adminLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Soru Detayı</h1>
+        <a href="@Url.Action("Questions", "Admin")" class="btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Sorulara Dön
+        </a>
+    </div>
+
+    <!-- Question Details Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary" id="questionTitle">Yükleniyor...</h6>
+        </div>
+        <div class="card-body">
+            <p id="questionContent">Yükleniyor...</p>
+            <div class="text-muted">
+                <small>Soran: <span id="questionUser">Yükleniyor...</span></small>
+                <small class="ml-3">Tarih: <span id="questionDate">Yükleniyor...</span></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Answers Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Cevaplar</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Cevap</th>
+                            <th>Kullanıcı</th>
+                            <th>Tarih</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="answersList">
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="sr-only">Yükleniyor...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const questionId = @ViewBag.QuestionId;
+
+            // Load question details
+            function loadQuestionDetails() {
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/question/${questionId}`,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    success: function(response) {
+                        $('#questionTitle').text(response.title);
+                        $('#questionContent').text(response.content);
+                        $('#questionUser').text(response.userName);
+                        $('#questionDate').text(new Date(response.createdDate).toLocaleDateString('tr-TR'));
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Soru detayları yüklenirken bir hata oluştu.');
+                        }
+                    }
+                });
+            }
+
+            // Load answers
+            function loadAnswers() {
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/answer/question/${questionId}`,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    success: function(response) {
+                        const tbody = $('#answersList');
+                        tbody.empty();
+
+                        if (typeof response === 'object' && response.message) {
+                            tbody.html(`<tr><td colspan="4" class="text-center">${response.message}</td></tr>`);
+                            return;
+                        }
+
+                        response.forEach(answer => {
+                            const row = `
+                                <tr>
+                                    <td>${answer.content}</td>
+                                    <td>${answer.userName}</td>
+                                    <td>${new Date(answer.createdDate).toLocaleDateString('tr-TR')}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger delete-answer" data-id="${answer.id}">
+                                            <i class="fas fa-trash"></i> Sil
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            tbody.append(row);
+                        });
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Cevaplar yüklenirken bir hata oluştu.');
+                        }
+                    }
+                });
+            }
+
+            // Delete answer
+            $(document).on('click', '.delete-answer', function() {
+                const answerId = $(this).data('id');
+                if (confirm('Bu cevabı silmek istediğinizden emin misiniz?')) {
+                    $.ajax({
+                        url: `${window.config.apiBaseUrl}/answer/${answerId}`,
+                        type: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        contentType: 'application/json',
+                        data: JSON.stringify('Alakasız/uygunsuz içerik - Admin tarafından engellendi.'),
+                        success: function() {
+                            loadAnswers(); // Reload answers after deletion
+                        },
+                        error: function(xhr) {
+                            if (xhr.status === 401) {
+                                window.location.href = '@Url.Action("Login", "Home")';
+                            } else {
+                                alert('Cevap silinirken bir hata oluştu.');
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Initial load
+            loadQuestionDetails();
+            loadAnswers();
+        });
+    </script>
+} 

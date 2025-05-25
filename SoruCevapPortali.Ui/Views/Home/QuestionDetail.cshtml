@@ -1,0 +1,312 @@
+@{
+    ViewData["Title"] = "Soru Detayı";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-primary mb-4">
+                <i class="fas fa-arrow-left"></i> Sorulara Dön
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <!-- Question Detail Card -->
+            <div class="card question-detail-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h2 class="card-title" id="questionTitle"></h2>
+                        <div id="questionActions" style="display: none;">
+                            <button class="btn btn-sm btn-primary me-2" onclick="editQuestion()">
+                                <i class="fas fa-edit"></i> Düzenle
+                            </button>
+                        </div>
+                    </div>
+                    <p class="card-text" id="questionContent"></p>
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div class="user-info">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="questionUserName"></span>
+                            <span class="text-muted ms-3">
+                                <i class="fas fa-clock"></i> <span id="questionDate"></span>
+                            </span>
+                        </div>
+                        <span class="badge bg-primary">
+                            <i class="fas fa-comments"></i> <span id="answerCount">0</span> Cevap
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Question Modal -->
+            <div class="modal fade" id="editQuestionModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Soru Düzenle</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editQuestionForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Başlık</label>
+                                    <input type="text" class="form-control" id="editQuestionTitle" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">İçerik</label>
+                                    <textarea class="form-control" id="editQuestionContent" rows="4" required></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                            <button type="button" class="btn btn-primary" onclick="updateQuestion()">Güncelle</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answer Form -->
+            <div class="card answer-form-card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Cevap Yaz</h5>
+                    <form id="answerForm">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="answerContent" rows="4" required placeholder="Cevabınızı buraya yazın..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Cevabı Gönder
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Answers List -->
+            <div class="card answers-list-card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Cevaplar</h5>
+                    <div id="answersList">
+                        <!-- Answers will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const questionId = @ViewContext.RouteData.Values["id"];
+            let currentQuestion = null;
+
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffTime = Math.abs(now - date);
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) {
+                    return 'Bugün';
+                } else if (diffDays === 1) {
+                    return 'Dün';
+                } else if (diffDays < 7) {
+                    return `${diffDays} gün önce`;
+                } else {
+                    return date.toLocaleDateString('tr-TR');
+                }
+            }
+
+            function loadQuestionDetail() {
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/question/${questionId}`,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    success: function(question) {
+                        currentQuestion = question;
+                        $('#questionTitle').text(question.title);
+                        $('#questionContent').text(question.content);
+                        $('#questionUserName').text(question.userName);
+                        $('#questionDate').text(formatDate(question.createdDate));
+                        $('#answerCount').text(question.answerCount);
+
+                        // Show edit button if user is the owner
+                        if (question.isOwner) {
+                            $('#questionActions').show();
+                        }
+                        
+                        loadAnswers();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading question:', error);
+                        alert('Soru detayları yüklenirken bir hata oluştu.');
+                    }
+                });
+            }
+
+            function loadAnswers() {
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/answer/question/${questionId}`,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    success: function(response) {
+                        const answersList = $('#answersList');
+                        answersList.empty();
+
+                        if (response.message) {
+                            answersList.html(`<div class="alert alert-info">${response.message}</div>`);
+                            return;
+                        }
+
+                        response.forEach(answer => {
+                            const answerCard = `
+                                <div class="card mb-3 answer-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <p class="card-text flex-grow-1">${answer.content}</p>
+                                            ${answer.isOwner ? `
+                                                <div class="ms-3">
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAnswer(${answer.id})" title="Cevabı Sil">
+                                                        <i class="fas fa-trash"></i> Sil
+                                                    </button>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div class="user-info">
+                                                <i class="fas fa-user-circle"></i>
+                                                <span class="ms-2">${answer.userName}</span>
+                                                <span class="text-muted ms-3">
+                                                    <i class="fas fa-clock"></i> ${formatDate(answer.createdDate)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            answersList.append(answerCard);
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading answers:', error);
+                        $('#answersList').html('<div class="alert alert-danger">Cevaplar yüklenirken bir hata oluştu.</div>');
+                    }
+                });
+            }
+
+            // Submit answer
+            $('#answerForm').submit(function(e) {
+                e.preventDefault();
+                
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '@Url.Action("Login", "Home")';
+                    return;
+                }
+
+                const answerData = {
+                    questionId: questionId,
+                    content: $('#answerContent').val()
+                };
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/answer`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    data: JSON.stringify(answerData),
+                    success: function(response) {
+                        $('#answerContent').val('');
+                        loadAnswers();
+                        loadQuestionDetail();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Cevap gönderilirken bir hata oluştu.');
+                        }
+                    }
+                });
+            });
+
+            // Edit question
+            window.editQuestion = function() {
+                $('#editQuestionTitle').val(currentQuestion.title);
+                $('#editQuestionContent').val(currentQuestion.content);
+                $('#editQuestionModal').modal('show');
+            };
+
+            // Update question
+            window.updateQuestion = function() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '@Url.Action("Login", "Home")';
+                    return;
+                }
+
+                const updateData = {
+                    title: $('#editQuestionTitle').val(),
+                    content: $('#editQuestionContent').val()
+                };
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/question/${questionId}`,
+                    type: 'PUT',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    data: JSON.stringify(updateData),
+                    success: function(response) {
+                        $('#editQuestionModal').modal('hide');
+                        loadQuestionDetail();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Soru güncellenirken bir hata oluştu.');
+                        }
+                    }
+                });
+            };
+
+            // Delete answer
+            window.deleteAnswer = function(answerId) {
+                if (!confirm('Bu cevabı silmek istediğinizden emin misiniz?')) return;
+
+                const token = localStorage.getItem('token');
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/answer/${answerId}`,
+                    type: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function() {
+                        loadAnswers();
+                        loadQuestionDetail();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Cevap silinirken bir hata oluştu.');
+                        }
+                    }
+                });
+            };
+
+            // Initial load
+            loadQuestionDetail();
+        });
+    </script>
+} 

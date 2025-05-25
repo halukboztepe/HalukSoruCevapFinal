@@ -1,0 +1,281 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_adminLayout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">Toplam Soru</p>
+                                <h5 class="font-weight-bolder" id="totalQuestions">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-primary shadow-primary text-center rounded-circle">
+                                <i class="fas fa-question-circle opacity-10"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">Toplam Cevap</p>
+                                <h5 class="font-weight-bolder" id="totalAnswers">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-success shadow-success text-center rounded-circle">
+                                <i class="fas fa-comments opacity-10"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">Toplam Üye</p>
+                                <h5 class="font-weight-bolder" id="totalUsers">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-warning shadow-warning text-center rounded-circle">
+                                <i class="fas fa-users opacity-10"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">Toplam Kullanıcı Sayısı</p>
+                                <h5 class="font-weight-bolder" id="totalStudents">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-info shadow-info text-center rounded-circle">
+                                <i class="fas fa-user-graduate opacity-10"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h6>Son Sorular</h6>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Başlık</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Kullanıcı</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Cevap Sayısı</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Tarih</th>
+                                    <th class="text-secondary opacity-7"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentQuestions">
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .icon-shape {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bg-gradient-primary {
+            background: linear-gradient(145deg, #4e73df 0%, #224abe 100%);
+        }
+        .bg-gradient-success {
+            background: linear-gradient(145deg, #1cc88a 0%, #13855c 100%);
+        }
+        .bg-gradient-warning {
+            background: linear-gradient(145deg, #f6c23e 0%, #dda20a 100%);
+        }
+        .bg-gradient-info {
+            background: linear-gradient(145deg, #36b9cc 0%, #258391 100%);
+        }
+        .icon-shape i {
+            color: white;
+            font-size: 1.25rem;
+        }
+        .numbers h5 {
+            font-size: 1.75rem;
+            margin-bottom: 0;
+            margin-top: 0.5rem;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '@Url.Action("Login", "Home")';
+                return;
+            }
+
+            // Load dashboard stats
+            $.ajax({
+                url: `${window.config.apiBaseUrl}/admin/dashboard`,
+                type: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                success: function(response) {
+                    $('#totalQuestions').text(response.totalQuestions);
+                    $('#totalAnswers').text(response.totalAnswers);
+                    $('#totalUsers').text(response.totalUsers);
+                    $('#totalStudents').text(response.totalStudents);
+                },
+                error: function(xhr) {
+                    if (xhr.status === 401) {
+                        window.location.href = '@Url.Action("Login", "Home")';
+                    }
+                }
+            });
+
+            // Load recent questions
+            $.ajax({
+                url: `${window.config.apiBaseUrl}/admin/questions`,
+                type: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                success: function(response) {
+                    const tbody = $('#recentQuestions');
+                    tbody.empty();
+
+                    if (!response.questions || response.questions.length === 0) {
+                        tbody.html(`<tr><td colspan="5" class="text-center">Henüz hiç soru bulunmamaktadır.</td></tr>`);
+                        return;
+                    }
+
+                    response.questions.forEach(question => {
+                        const row = `
+                            <tr>
+                                <td>
+                                    <div class="d-flex px-3 py-1">
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <h6 class="mb-0 text-sm">${question.title}</h6>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <p class="text-sm font-weight-bold mb-0">${question.userName}</p>
+                                </td>
+                                <td class="align-middle text-center text-sm">
+                                    <span class="badge badge-sm bg-gradient-success">${question.answerCount}</span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="text-secondary text-sm font-weight-bold">${new Date(question.createdDate).toLocaleDateString('tr-TR')}</span>
+                                </td>
+                                <td class="align-middle">
+                                    <a href="@Url.Action("QuestionDetail", "Admin")/${question.id}" class="btn btn-link text-info text-gradient px-3 mb-0">
+                                        <i class="fas fa-eye me-2"></i>Detay
+                                    </a>
+                                    <button class="btn btn-link text-danger text-gradient px-3 mb-0" onclick="deleteQuestion(${question.id})">
+                                        <i class="fas fa-trash me-2"></i>Sil
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr) {
+                    if (xhr.status === 401) {
+                        window.location.href = '@Url.Action("Login", "Home")';
+                    } else {
+                        $('#recentQuestions').html(`<tr><td colspan="5" class="text-center">Sorular yüklenirken bir hata oluştu.</td></tr>`);
+                    }
+                }
+            });
+        });
+
+        function deleteQuestion(id) {
+            if (!confirm('Bu soruyu silmek istediğinizden emin misiniz?')) return;
+
+            const token = localStorage.getItem('token');
+            $.ajax({
+                url: `${window.config.apiBaseUrl}/admin/questions/${id}`,
+                type: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                success: function() {
+                    location.reload();
+                },
+                error: function(xhr) {
+                    if (xhr.status === 401) {
+                        window.location.href = '@Url.Action("Login", "Home")';
+                    } else {
+                        alert('Soru silinirken bir hata oluştu.');
+                    }
+                }
+            });
+        }
+    </script>
+}
+

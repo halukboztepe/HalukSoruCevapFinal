@@ -1,0 +1,376 @@
+@{
+    ViewData["Title"] = "Sorularım";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-question-circle me-2"></i>Sorularım
+        </h2>
+        <button class="btn btn-primary" id="createQuestionBtn">
+            <i class="fas fa-plus"></i> Yeni Soru Ekle
+        </button>
+    </div>
+
+    <div id="questionsList" class="row">
+        <!-- Questions will be loaded here -->
+    </div>
+
+    <!-- Question Detail Modal -->
+    <div class="modal fade" id="questionDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="questionTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="question-detail mb-4">
+                        <p id="questionContent" class="mb-3"></p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="questionUserName"></span>
+                                <span class="text-muted ms-3">
+                                    <i class="fas fa-clock"></i> <span id="questionDate"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Answer Form -->
+                    <div class="answer-form mb-4">
+                        <h6 class="mb-3">Cevap Yaz</h6>
+                        <form id="answerForm">
+                            <div class="mb-3">
+                                <textarea class="form-control" id="answerContent" rows="3" required placeholder="Cevabınızı buraya yazın..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Cevabı Gönder
+                            </button>
+                        </form>
+                    </div>
+
+                    <hr>
+
+                    <!-- Answers List -->
+                    <div class="answers-list">
+                        <h6 class="mb-3">Cevaplar</h6>
+                        <div id="answersList">
+                            <!-- Answers will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Question Modal -->
+    <div class="modal fade" id="createQuestionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Soru Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createQuestionForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Başlık</label>
+                            <input type="text" class="form-control" id="title" name="title" required maxlength="500">
+                        </div>
+                        <div class="mb-3">
+                            <label for="content" class="form-label">İçerik</label>
+                            <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="submitQuestion">Soruyu Gönder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let currentQuestionId = null;
+
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffTime = Math.abs(now - date);
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) {
+                    return 'Bugün';
+                } else if (diffDays === 1) {
+                    return 'Dün';
+                } else if (diffDays < 7) {
+                    return `${diffDays} gün önce`;
+                } else {
+                    return date.toLocaleDateString('tr-TR');
+                }
+            }
+
+            // Load user's questions
+            function loadQuestions() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '@Url.Action("Login", "Home")';
+                    return;
+                }
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/question/my-questions`,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function(response) {
+                        const questionsList = $('#questionsList');
+                        questionsList.empty();
+
+                        if (response.message) {
+                            questionsList.html(`
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>${response.message}
+                                        <div class="mt-3">
+                                            <button class="btn btn-primary btn-sm" onclick="$('#createQuestionBtn').click()">
+                                                <i class="fas fa-plus me-1"></i>İlk Sorunu Sor
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `);
+                            return;
+                        }
+
+                        response.forEach(question => {
+                            const questionCard = `
+                                <div class="col-md-6 mb-4">
+                                    <div class="card h-100 question-card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${question.title}</h5>
+                                            <p class="card-text">${question.content}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="user-info">
+                                                    <i class="fas fa-clock"></i>
+                                                    <span class="ms-2">${formatDate(question.createdDate)}</span>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-outline-primary btn-sm view-answers" data-id="${question.id}">
+                                                        <i class="fas fa-comments me-1"></i>${question.answerCount} Cevap
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-sm ms-2 delete-question" data-id="${question.id}" title="Soruyu Sil">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            questionsList.append(questionCard);
+                        });
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            $('#questionsList').html(`
+                                <div class="col-12">
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-circle me-2"></i>Sorularınız yüklenirken bir hata oluştu.
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    }
+                });
+            }
+
+            // Load answers for a question
+            function loadAnswers(questionId) {
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/answer/question/${questionId}`,
+                    type: 'GET',
+                    success: function(response) {
+                        const answersList = $('#answersList');
+                        answersList.empty();
+
+                        if (response.message) {
+                            answersList.html(`<div class="alert alert-info">${response.message}</div>`);
+                            return;
+                        }
+
+                        response.forEach(answer => {
+                            const answerCard = `
+                                <div class="card mb-3 answer-card">
+                                    <div class="card-body">
+                                        <p class="card-text">${answer.content}</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div class="user-info">
+                                                <i class="fas fa-user-circle"></i>
+                                                <span class="ms-2">${answer.userName}</span>
+                                                <span class="text-muted ms-3">
+                                                    <i class="fas fa-clock"></i> ${formatDate(answer.createdDate)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            answersList.append(answerCard);
+                        });
+                    },
+                    error: function() {
+                        $('#answersList').html('<div class="alert alert-danger">Cevaplar yüklenirken bir hata oluştu.</div>');
+                    }
+                });
+            }
+
+            // Show question detail modal
+            $(document).on('click', '.view-answers', function() {
+                const questionId = $(this).data('id');
+                currentQuestionId = questionId;
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/question/${questionId}`,
+                    type: 'GET',
+                    success: function(question) {
+                        $('#questionTitle').text(question.title);
+                        $('#questionContent').text(question.content);
+                        $('#questionUserName').text(question.userName);
+                        $('#questionDate').text(formatDate(question.createdDate));
+                        
+                        loadAnswers(questionId);
+                        $('#questionDetailModal').modal('show');
+                    },
+                    error: function() {
+                        alert('Soru detayları yüklenirken bir hata oluştu.');
+                    }
+                });
+            });
+
+            // Submit answer
+            $('#answerForm').submit(function(e) {
+                e.preventDefault();
+                
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '@Url.Action("Login", "Home")';
+                    return;
+                }
+
+                const answerData = {
+                    questionId: currentQuestionId,
+                    content: $('#answerContent').val()
+                };
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/answer`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    data: JSON.stringify(answerData),
+                    success: function(response) {
+                        $('#answerContent').val('');
+                        loadAnswers(currentQuestionId);
+                        loadQuestions();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Cevap gönderilirken bir hata oluştu.');
+                        }
+                    }
+                });
+            });
+
+            // Show create question modal
+            $('#createQuestionBtn').click(function() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '@Url.Action("Login", "Home")';
+                    return;
+                }
+                $('#createQuestionModal').modal('show');
+            });
+
+            // Submit question
+            $('#submitQuestion').click(function() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '@Url.Action("Login", "Home")';
+                    return;
+                }
+
+                const questionData = {
+                    title: $('#title').val(),
+                    content: $('#content').val()
+                };
+
+                $.ajax({
+                    url: `${window.config.apiBaseUrl}/question`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    data: JSON.stringify(questionData),
+                    success: function(response) {
+                        $('#createQuestionModal').modal('hide');
+                        $('#createQuestionForm')[0].reset();
+                        loadQuestions();
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 401) {
+                            window.location.href = '@Url.Action("Login", "Home")';
+                        } else {
+                            alert('Soru eklenirken bir hata oluştu.');
+                        }
+                    }
+                });
+            });
+
+            // Delete question handler
+            $(document).on('click', '.delete-question', function(e) {
+                e.stopPropagation();
+                const questionId = $(this).data('id');
+                
+                if (confirm('Bu soruyu silmek istediğinizden emin misiniz?')) {
+                    $.ajax({
+                        url: `${window.config.apiBaseUrl}/question/${questionId}`,
+                        type: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        success: function() {
+                            loadQuestions();
+                        },
+                        error: function(xhr) {
+                            if (xhr.status === 401) {
+                                window.location.href = '@Url.Action("Login", "Home")';
+                            } else {
+                                alert('Soru silinirken bir hata oluştu.');
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Initial load
+            loadQuestions();
+        });
+    </script>
+} 
